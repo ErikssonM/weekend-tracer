@@ -119,7 +119,7 @@ impl Ray {
 }
 
 impl Hittable for Sphere {
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64, record: &mut HitRecord) -> bool {
+    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         let oc = ray.origin() - self.center;
         let a = ray.direction().length_squared();
         let half_b = oc.dot(&ray.direction());
@@ -128,24 +128,28 @@ impl Hittable for Sphere {
         let discriminant = half_b.powf(2.) - a * c;
 
         if discriminant < 0.0 {
-            return false;
+            return None;
         }
 
         let mut root = (-half_b - discriminant.sqrt()) / a;
         if root < t_min || t_max < root {
             root = (-half_b + discriminant.sqrt()) / a;
             if root < t_min || t_max < root {
-                return false;
+                return None;
             }
         }
 
-        record.t = root;
-        record.point = ray.at(record.t);
-        let outward_normal = (record.point - self.center) / self.radius;
-        record.set_face_normal(&ray, &outward_normal);
-        record.material = Some(self.material.clone());
+        let t = root;
+        let point = ray.at(root);
+        let outward_normal = (point - self.center) / self.radius;
 
-        true
+        Some(HitRecord::new(
+            &ray,
+            &outward_normal,
+            point,
+            self.material.clone(),
+            t,
+        ))
     }
 }
 
@@ -171,15 +175,16 @@ mod tests {
             orig: v3(-2., 0., 0.),
             dir: v3(1., 0., 0.),
         };
-        let mut rec = HitRecord::new();
 
         // Test hit
-        let res = sphere.hit(&ray, 0., 100., &mut rec);
+        let res = sphere.hit(&ray, 0., 100.);
 
         // A Hit should be detected
-        assert_eq!(res, true);
-        // recorded hit site should be -1, 0, 0
-        assert_eq!((rec.point - v3(-1., 0., 0.)).length() < 0.01, true);
+        match res {
+            // recorded hit site should be -1, 0, 0
+            Some(rec) => assert_eq!((rec.point - v3(-1., 0., 0.)).length() < 0.01, true),
+            None => panic!("Expected a hit to be recorded"),
+        }
     }
 
     #[test]
@@ -199,13 +204,15 @@ mod tests {
             orig: v3(-2., 0., 0.),
             dir: v3(0., 1., 0.),
         };
-        let mut rec = HitRecord::new();
 
         // Test hit
-        let res = sphere.hit(&ray, 0., 100., &mut rec);
+        let res = sphere.hit(&ray, 0., 100.);
 
         // No hit should be detected
-        assert_eq!(res, false);
+        match res {
+            Some(_) => panic!("No hit should be detected"),
+            None => (),
+        }
     }
 
     #[test]
@@ -225,17 +232,16 @@ mod tests {
             orig: v3(0., 0., 0.),
             dir: v3(1., 0., 0.),
         };
-        let mut rec = HitRecord::new();
 
         // Test hit
-        let res = sphere.hit(&ray, 0., 100., &mut rec);
+        let res = sphere.hit(&ray, 0., 100.);
 
         // Hit should be detected
-        assert_eq!(res, true);
-
-        println!("Rec.p: {}", rec.point);
-        // Hit should occur at 1, 0, 0
-        assert_eq!((rec.point - v3(1., 0., 0.)).length() < 0.01, true);
+        match res {
+            // Hit should occur at 1, 0, 0
+            Some(rec) => assert_eq!((rec.point - v3(1., 0., 0.)).length() < 0.01, true),
+            None => panic!("Expected a hit to be recorded"),
+        };
     }
 
     #[test]
@@ -255,16 +261,15 @@ mod tests {
             orig: v3(-2., 1., 0.),
             dir: v3(1., 0., 0.),
         };
-        let mut rec = HitRecord::new();
 
         // Test hit
-        let res = sphere.hit(&ray, 0., 100., &mut rec);
+        let res = sphere.hit(&ray, 0., 100.);
 
         // Hit should be detected
-        assert_eq!(res, true);
-
-        println!("Rec.p: {}", rec.point);
-        // Hit should occur at 0, 1, 0
-        assert_eq!((rec.point - v3(0., 1., 0.)).length() < 0.01, true);
+        match res {
+            // Hit should occur at 0, 1, 0
+            Some(rec) => assert_eq!((rec.point - v3(0., 1., 0.)).length() < 0.01, true),
+            None => panic!("Expected a hit to be recorded"),
+        };
     }
 }

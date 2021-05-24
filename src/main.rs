@@ -13,7 +13,7 @@ mod material;
 use camera::Camera;
 use color::Color;
 use geometry::{rand_in, unit, v3, Ray, Sphere};
-use hittable::{HitRecord, Hittable, HittableList};
+use hittable::{Hittable, HittableList};
 use image::{merge_samples, Image};
 
 use crate::{
@@ -24,19 +24,15 @@ use crate::{
 const INF: f64 = f64::INFINITY;
 
 fn ray_color(ray: &Ray, world: &impl Hittable, depth: i32) -> Color {
-    let mut rec = HitRecord::new();
-
     if depth <= 0 {
         return Color::black();
     }
 
-    if world.hit(ray, 0.001, INF, &mut rec) {
-        let col = match rec.material {
-            None => Color::black(), // No hit
-            Some(ref mat) => match mat.scatter(&ray, &rec) {
-                None => Color::black(),
-                Some((att, sc_ray)) => att * ray_color(&sc_ray, world, depth - 1),
-            },
+    //match world.hit(ray, 0.001, INF) {
+    if let Some(rec) = world.hit(ray, 0.001, INF) {
+        let col = match rec.material.scatter(&ray, &rec) {
+            None => Color::black(),
+            Some((att, sc_ray)) => att * ray_color(&sc_ray, world, depth - 1),
         };
         return col;
     }
@@ -88,8 +84,8 @@ fn make_world() -> HittableList {
     };
     world.add(Rc::new(ground));
 
-    for a in -11..11 {
-        for b in -11..11 {
+    for a in -3..3 {
+        for b in -3..3 {
             let choose_mat: f64 = random();
             let cent = v3(
                 a as f64 + 0.9 * random::<f64>(),
@@ -153,7 +149,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let start = Instant::now();
 
     let ratio: f64 = 16.0 / 9.0;
-    let width: usize = 800;
+    let width: usize = 400;
     let height: usize = (width as f64 / ratio) as usize;
 
     let sub_samples = 8;

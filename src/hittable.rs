@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
 use crate::{
-    geometry::{v3, Point, Ray, V3},
+    geometry::{Point, Ray, V3},
     material::Material,
 };
 
@@ -11,13 +11,13 @@ pub struct HittableList {
 }
 
 pub trait Hittable {
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64, record: &mut HitRecord) -> bool;
+    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord>;
 }
 #[derive(Clone)]
 pub struct HitRecord {
     pub point: Point,
     pub normal: V3,
-    pub material: Option<Rc<dyn Material>>,
+    pub material: Rc<dyn Material>,
     pub t: f64,
     pub front_face: bool,
 }
@@ -37,40 +37,45 @@ impl HittableList {
 }
 
 impl Hittable for HittableList {
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64, record: &mut HitRecord) -> bool {
-        let mut any_hit = false;
+    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+        let mut any_hit: Option<HitRecord> = None;
         let mut closest_so_far = t_max;
 
         for hittable in self.list.iter() {
-            let mut tmp_record = HitRecord::new();
-            if hittable.hit(ray, t_min, closest_so_far, &mut tmp_record) {
-                any_hit = true;
-                closest_so_far = tmp_record.t;
-                *record = tmp_record;
+            if let Some(rec) = hittable.hit(ray, t_min, closest_so_far) {
+                closest_so_far = rec.t;
+                any_hit = Some(rec);
             }
         }
-
         any_hit
     }
 }
 
 impl HitRecord {
-    pub fn new() -> Self {
+    pub fn new(
+        ray: &Ray,
+        outward_normal: &V3,
+        point: Point,
+        material: Rc<dyn Material>,
+        t: f64,
+    ) -> Self {
+        let (normal, front_face) = Self::get_face_normal_from_ray(ray, outward_normal);
         HitRecord {
-            point: v3(0.0, 0.0, 0.0),
-            normal: v3(0.0, 0.0, 0.0),
-            material: None,
-            t: 0.0,
-            front_face: true,
+            point,
+            normal,
+            material,
+            t,
+            front_face,
         }
     }
 
-    pub fn set_face_normal(&mut self, ray: &Ray, outward_normal: &V3) {
-        self.front_face = ray.direction().dot(outward_normal) < 0.0;
-        self.normal = if self.front_face {
+    fn get_face_normal_from_ray(ray: &Ray, outward_normal: &V3) -> (V3, bool) {
+        let front_face = ray.direction().dot(outward_normal) < 0.0;
+        let normal = if front_face {
             *outward_normal
         } else {
             -outward_normal
-        }
+        };
+        (normal, front_face)
     }
 }
