@@ -1,29 +1,29 @@
-use std::{error::Error, fs::File, rc::Rc};
-use std::time::Instant;
-use std::thread;
 use material::Material;
 use rand::prelude::*;
+use std::thread;
+use std::time::Instant;
+use std::{error::Error, fs::File, rc::Rc};
 
-mod geometry;
 mod camera;
-mod hittable;
 mod color;
+mod geometry;
+mod hittable;
 mod image;
 mod material;
 
-use geometry::{Ray, Sphere, rand_in, random_unit_vec, unit, v3};
 use camera::Camera;
-use hittable::{HitRecord, Hittable, HittableList};
 use color::Color;
-use image::{Image, merge_samples};
+use geometry::{rand_in, random_unit_vec, unit, v3, Ray, Sphere};
+use hittable::{HitRecord, Hittable, HittableList};
+use image::{merge_samples, Image};
 
-use crate::{geometry::{V3Length, refract}, material::{Dielectric, Lambertian, Metal}};
+use crate::{
+    geometry::{refract, V3Length},
+    material::{Dielectric, Lambertian, Metal},
+};
 
 const INF: f64 = f64::INFINITY;
 const PI: f64 = 3.1415926535897932385;
-
-
-
 
 fn ray_color(ray: &Ray, world: &impl Hittable, depth: i32) -> Color {
     let mut rec = HitRecord::new();
@@ -34,27 +34,19 @@ fn ray_color(ray: &Ray, world: &impl Hittable, depth: i32) -> Color {
     }
 
     if world.hit(ray, 0.001, INF, &mut rec) {
-
         let col = match rec.material {
             None => Color::black(), // No hit
-            Some(ref mat) => {
-                match mat.scatter(&ray, &rec) {
-                    None => Color::black(),
-                    Some((att, sc_ray)) => {
-                        att * ray_color(&sc_ray, world, depth-1)
-                    }
-                }
-            }
+            Some(ref mat) => match mat.scatter(&ray, &rec) {
+                None => Color::black(),
+                Some((att, sc_ray)) => att * ray_color(&sc_ray, world, depth - 1),
+            },
         };
-        return col
+        return col;
     }
 
     let unit_dir = unit(&ray.direction());
     let t = 0.5 * (unit_dir.y + 1.0);
-    Color(
-        (1.0 - t) * v3(1.0, 1.0, 1.0) +
-        t * v3(0.5, 0.7, 1.0)
-    )
+    Color((1.0 - t) * v3(1.0, 1.0, 1.0) + t * v3(0.5, 0.7, 1.0))
 }
 
 fn render(
@@ -63,23 +55,21 @@ fn render(
     width: usize,
     height: usize,
     samples: i32,
-    max_depth: i32) -> Image {
-
+    max_depth: i32,
+) -> Image {
     let mut image = Image::new(width, height);
-    
+
     for j in 0..height {
         for i in 0..width {
             let mut color = Color::black();
 
             for s in 0..samples {
-
                 let u = (i as f64 + random::<f64>()) / (width - 1) as f64;
                 let v = (j as f64 + random::<f64>()) / (height - 1) as f64;
                 let ray = camera.get_ray(u, v);
 
                 color = color + ray_color(&ray, world, max_depth);
             }
-            
 
             image.img[(i, j)] = Color(color.0 / (samples as f64));
         }
@@ -91,52 +81,78 @@ fn render(
 fn make_world() -> HittableList {
     let mut world = HittableList::new();
 
-    let ground_mat = Rc::new(Lambertian { albedo: Color(v3(0.5, 0.5, 0.5))});
-    let ground = Sphere { center: v3(0., -1000., 0.), radius: 1000., material: ground_mat.clone()};
+    let ground_mat = Rc::new(Lambertian {
+        albedo: Color(v3(0.5, 0.5, 0.5)),
+    });
+    let ground = Sphere {
+        center: v3(0., -1000., 0.),
+        radius: 1000.,
+        material: ground_mat.clone(),
+    };
     world.add(Rc::new(ground));
 
     for a in -11..11 {
         for b in -11..11 {
             let choose_mat: f64 = random();
-            let cent = v3(a as f64 + 0.9*random::<f64>(), 0.2, b as f64 + 0.9*random::<f64>());
+            let cent = v3(
+                a as f64 + 0.9 * random::<f64>(),
+                0.2,
+                b as f64 + 0.9 * random::<f64>(),
+            );
 
             if (cent - v3(4., 0.2, 0.)).length() > 0.9 {
                 let mat: Rc<dyn Material> = if choose_mat < 0.8 {
-                    Rc::new(Lambertian {albedo: Color::random() * Color::random()})
+                    Rc::new(Lambertian {
+                        albedo: Color::random() * Color::random(),
+                    })
                 } else if choose_mat < 0.95 {
-                    Rc::new(Metal {albedo: Color::random_in(0.5, 1.), fuzz: rand_in(0., 0.3)})
+                    Rc::new(Metal {
+                        albedo: Color::random_in(0.5, 1.),
+                        fuzz: rand_in(0., 0.3),
+                    })
                 } else {
-                    Rc::new(Dielectric {ir: 1.5} )
+                    Rc::new(Dielectric { ir: 1.5 })
                 };
 
-                world.add(Rc::new(
-                    Sphere { center: cent, radius: 0.2, material: mat}
-                ));
-
+                world.add(Rc::new(Sphere {
+                    center: cent,
+                    radius: 0.2,
+                    material: mat,
+                }));
             }
         }
     }
 
-    let mat1 = Rc::new(Dielectric {ir: 1.5});
-    world.add(Rc::new(
-        Sphere {center: v3(0., 1., 0.), radius: 1., material: mat1}
-    ));
+    let mat1 = Rc::new(Dielectric { ir: 1.5 });
+    world.add(Rc::new(Sphere {
+        center: v3(0., 1., 0.),
+        radius: 1.,
+        material: mat1,
+    }));
 
-    let mat2 = Rc::new(Lambertian {albedo: Color(v3(0.4, 0.2, 0.1))});
-    world.add(Rc::new(
-        Sphere {center: v3(-4., 1., 0.), radius: 1., material: mat2}
-    ));
+    let mat2 = Rc::new(Lambertian {
+        albedo: Color(v3(0.4, 0.2, 0.1)),
+    });
+    world.add(Rc::new(Sphere {
+        center: v3(-4., 1., 0.),
+        radius: 1.,
+        material: mat2,
+    }));
 
-    let mat3 = Rc::new(Metal {albedo: Color(v3(0.7, 0.6, 0.5)), fuzz: 0.0});
-    world.add(Rc::new(
-        Sphere {center: v3(0., 1., 0.), radius: 1., material: mat3}
-    ));
+    let mat3 = Rc::new(Metal {
+        albedo: Color(v3(0.7, 0.6, 0.5)),
+        fuzz: 0.0,
+    });
+    world.add(Rc::new(Sphere {
+        center: v3(0., 1., 0.),
+        radius: 1.,
+        material: mat3,
+    }));
 
     world
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-
     let start = Instant::now();
 
     let ratio: f64 = 16.0 / 9.0;
@@ -162,19 +178,24 @@ fn main() -> Result<(), Box<dyn Error>> {
         lookat,
         vup,
         40.,
-        16./9.,
+        16. / 9.,
         0.1,
-        focus_dist));
-
+        focus_dist,
+    ));
 
     //let mut handles = Vec::with_capacity(super_samples);
     let mut images = Vec::with_capacity(super_samples);
 
     for sup in 0..super_samples {
         println!("Running {} of {} samples.", sup, super_samples);
-        images.push(
-            render(&camera, &world, width, height, sub_samples, max_depth)
-        )
+        images.push(render(
+            &camera,
+            &world,
+            width,
+            height,
+            sub_samples,
+            max_depth,
+        ))
     }
 
     // println!("Starting threads");
@@ -201,5 +222,4 @@ fn main() -> Result<(), Box<dyn Error>> {
     println!("Finished running in {:?}", end.duration_since(start));
 
     Ok(())
-
 }

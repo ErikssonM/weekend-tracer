@@ -1,4 +1,4 @@
-use crate::geometry::{Point, Ray, V3, deg_to_rad, rand_in_unit_disk, unit, v3};
+use crate::geometry::{deg_to_rad, rand_in_unit_disk, unit, v3, Point, Ray, V3};
 
 pub struct Camera {
     origin: Point,
@@ -8,13 +8,21 @@ pub struct Camera {
     u: V3,
     v: V3,
     w: V3,
-    lens_radius: f64
+    lens_radius: f64,
 }
 
 impl Camera {
-    pub fn new(lookfrom: Point, lookat: Point, vup: V3, vfov: f64, aspect: f64, aperture: f64, focus_dist: f64) -> Self {
+    pub fn new(
+        lookfrom: Point,
+        lookat: Point,
+        vup: V3,
+        vfov: f64,
+        aspect: f64,
+        aperture: f64,
+        focus_dist: f64,
+    ) -> Self {
         let theta = deg_to_rad(vfov);
-        let h = f64::tan(theta/2.);
+        let h = f64::tan(theta / 2.);
 
         let vp_height = 2.0 * h;
         let vp_width = aspect * vp_height;
@@ -26,10 +34,10 @@ impl Camera {
         let origin = lookfrom;
         let horizontal = focus_dist * vp_width * u;
         let vertical = focus_dist * vp_height * v;
-        let lower_left =  origin - horizontal / 2.0 - vertical / 2.0 - focus_dist * w;
+        let lower_left = origin - horizontal / 2.0 - vertical / 2.0 - focus_dist * w;
 
         let lens_radius = aperture / 2.;
-        
+
         Self {
             origin,
             lower_left,
@@ -38,7 +46,7 @@ impl Camera {
             u,
             v,
             w,
-            lens_radius
+            lens_radius,
         }
     }
 
@@ -48,8 +56,7 @@ impl Camera {
 
         Ray {
             orig: self.origin.clone() + offset,
-            dir: self.lower_left + s*self.horizontal + t*self.vertical - self.origin - offset
-            //dir: self.lower_left + s*self.horizontal + t*self.vertical - self.origin
+            dir: self.lower_left + s * self.horizontal + t * self.vertical - self.origin - offset, //dir: self.lower_left + s*self.horizontal + t*self.vertical - self.origin
         }
     }
 }

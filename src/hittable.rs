@@ -1,10 +1,13 @@
 use std::rc::Rc;
 
-use crate::{geometry::{Ray, Point, V3, v3}, material::Material};
+use crate::{
+    geometry::{v3, Point, Ray, V3},
+    material::Material,
+};
 
 #[derive(Clone)]
 pub struct HittableList {
-    pub list: Vec<Rc<dyn Hittable>>
+    pub list: Vec<Rc<dyn Hittable>>,
 }
 
 pub trait Hittable {
@@ -16,14 +19,12 @@ pub struct HitRecord {
     pub normal: V3,
     pub material: Option<Rc<dyn Material>>,
     pub t: f64,
-    pub front_face: bool
+    pub front_face: bool,
 }
 
 impl HittableList {
     pub fn new() -> Self {
-        HittableList {
-            list: Vec::new()
-        }
+        HittableList { list: Vec::new() }
     }
 
     pub fn clear(&mut self) {
@@ -48,7 +49,7 @@ impl Hittable for HittableList {
                 *record = tmp_record;
             }
         }
-        
+
         any_hit
     }
 }
@@ -60,12 +61,16 @@ impl HitRecord {
             normal: v3(0.0, 0.0, 0.0),
             material: None,
             t: 0.0,
-            front_face: true
+            front_face: true,
         }
     }
 
     pub fn set_face_normal(&mut self, ray: &Ray, outward_normal: &V3) {
         self.front_face = ray.direction().dot(outward_normal) < 0.0;
-        self.normal = if self.front_face {outward_normal.clone()} else {-outward_normal.clone()}
+        self.normal = if self.front_face {
+            outward_normal.clone()
+        } else {
+            -outward_normal.clone()
+        }
     }
 }

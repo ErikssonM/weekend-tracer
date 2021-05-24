@@ -3,7 +3,12 @@ use std::rc::Rc;
 use nalgebra::base::Vector3;
 use rand::random;
 
-use crate::{PI, color::Color, hittable::{Hittable, HitRecord}, material::{Material, Metal}};
+use crate::{
+    color::Color,
+    hittable::{HitRecord, Hittable},
+    material::{Material, Metal},
+    PI,
+};
 
 pub type V3 = Vector3<f64>;
 
@@ -19,13 +24,13 @@ pub trait V3Length {
 
 pub struct Ray {
     pub orig: Point,
-    pub dir: V3
+    pub dir: V3,
 }
 
 pub struct Sphere {
     pub center: Point,
     pub radius: f64,
-    pub material: Rc<dyn Material>
+    pub material: Rc<dyn Material>,
 }
 
 pub fn v3(x: f64, y: f64, z: f64) -> V3 {
@@ -46,7 +51,9 @@ pub fn near_zero(v: &V3) -> bool {
 }
 
 pub fn rand_in(min: f64, max: f64) -> f64 {
-    if max < min {panic!()}
+    if max < min {
+        panic!()
+    }
     random::<f64>() * (max - min) + min
 }
 
@@ -70,7 +77,9 @@ pub fn deg_to_rad(deg: f64) -> f64 {
 pub fn random_in_unit_sphere() -> V3 {
     loop {
         let p = rand_vec_bounded(-1.0, 1.0);
-        if p.norm() < 1.0 {return p}
+        if p.norm() < 1.0 {
+            return p;
+        }
     }
 }
 
@@ -83,15 +92,14 @@ pub fn reflect(v: &V3, n: &V3) -> V3 {
 }
 
 impl V3Length for V3 {
-    fn length_squared(&self) -> f64{
+    fn length_squared(&self) -> f64 {
         self.dot(self)
     }
 }
 
 pub fn refract(uv: &V3, n: &V3, etai_over_etat: f64) -> V3 {
-
     let cos_theta = -uv.dot(n).min(-1.);
-    let r_out_perp = etai_over_etat * (uv + cos_theta*n);
+    let r_out_perp = etai_over_etat * (uv + cos_theta * n);
     let r_out_par = -(1. - r_out_perp.dot(&r_out_perp)).abs().sqrt() * n;
 
     r_out_perp + r_out_par
@@ -114,11 +122,11 @@ impl Ray {
 impl Hittable for Sphere {
     fn hit(&self, ray: &Ray, t_min: f64, t_max: f64, record: &mut HitRecord) -> bool {
         let oc = ray.origin() - self.center.clone();
-        let a  = ray.direction().length_squared();
+        let a = ray.direction().length_squared();
         let half_b = oc.dot(&ray.direction());
-        let c = oc.length_squared() - self.radius*self.radius;
+        let c = oc.length_squared() - self.radius * self.radius;
 
-        let discriminant = half_b*half_b - a*c;
+        let discriminant = half_b * half_b - a * c;
 
         if discriminant < 0.0 {
             return false;
@@ -130,7 +138,7 @@ impl Hittable for Sphere {
             if root < t_min || t_max < root {
                 return false;
             }
-        } 
+        }
 
         record.t = root;
         record.point = ray.at(record.t);
@@ -138,7 +146,7 @@ impl Hittable for Sphere {
         record.set_face_normal(&ray, &outward_normal);
         record.material = Some(self.material.clone());
 
-        return true
+        return true;
     }
 }
 
@@ -148,8 +156,10 @@ mod tests {
 
     #[test]
     fn test_hit_sphere() {
-
-        let mat = Metal {albedo: Color(v3(1., 1., 1.)), fuzz: 0.1 };
+        let mat = Metal {
+            albedo: Color(v3(1., 1., 1.)),
+            fuzz: 0.1,
+        };
 
         let sphere = Sphere {
             center: v3(0., 0., 0.),
@@ -157,9 +167,12 @@ mod tests {
             material: Rc::new(mat),
         };
 
-        let ray = Ray { orig: v3(-2., 0., 0.), dir: v3(1., 0., 0.) };
+        let ray = Ray {
+            orig: v3(-2., 0., 0.),
+            dir: v3(1., 0., 0.),
+        };
         let mut rec = HitRecord::new();
-        
+
         // Test hit
         let res = sphere.hit(&ray, 0., 100., &mut rec);
 
@@ -171,8 +184,10 @@ mod tests {
 
     #[test]
     fn test_hit_sphere_no_intersection() {
-
-        let mat = Metal {albedo: Color(v3(1., 1., 1.)), fuzz: 0.1 };
+        let mat = Metal {
+            albedo: Color(v3(1., 1., 1.)),
+            fuzz: 0.1,
+        };
 
         let sphere = Sphere {
             center: v3(0., 0., 0.),
@@ -180,9 +195,12 @@ mod tests {
             material: Rc::new(mat),
         };
 
-        let ray = Ray { orig: v3(-2., 0., 0.), dir: v3(0., 1., 0.) };
+        let ray = Ray {
+            orig: v3(-2., 0., 0.),
+            dir: v3(0., 1., 0.),
+        };
         let mut rec = HitRecord::new();
-        
+
         // Test hit
         let res = sphere.hit(&ray, 0., 100., &mut rec);
 
@@ -192,8 +210,10 @@ mod tests {
 
     #[test]
     fn test_hit_sphere_ray_starts_inside() {
-
-        let mat = Metal {albedo: Color(v3(1., 1., 1.)), fuzz: 0.1 };
+        let mat = Metal {
+            albedo: Color(v3(1., 1., 1.)),
+            fuzz: 0.1,
+        };
 
         let sphere = Sphere {
             center: v3(0., 0., 0.),
@@ -201,9 +221,12 @@ mod tests {
             material: Rc::new(mat),
         };
 
-        let ray = Ray { orig: v3(0., 0., 0.), dir: v3(1., 0., 0.) };
+        let ray = Ray {
+            orig: v3(0., 0., 0.),
+            dir: v3(1., 0., 0.),
+        };
         let mut rec = HitRecord::new();
-        
+
         // Test hit
         let res = sphere.hit(&ray, 0., 100., &mut rec);
 
@@ -217,8 +240,10 @@ mod tests {
 
     #[test]
     fn test_hit_sphere_glancing() {
-
-        let mat = Metal {albedo: Color(v3(1., 1., 1.)), fuzz: 0.1 };
+        let mat = Metal {
+            albedo: Color(v3(1., 1., 1.)),
+            fuzz: 0.1,
+        };
 
         let sphere = Sphere {
             center: v3(0., 0., 0.),
@@ -226,9 +251,12 @@ mod tests {
             material: Rc::new(mat),
         };
 
-        let ray = Ray { orig: v3(-2., 1., 0.), dir: v3(1., 0., 0.) };
+        let ray = Ray {
+            orig: v3(-2., 1., 0.),
+            dir: v3(1., 0., 0.),
+        };
         let mut rec = HitRecord::new();
-        
+
         // Test hit
         let res = sphere.hit(&ray, 0., 100., &mut rec);
 

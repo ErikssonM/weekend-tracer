@@ -1,13 +1,12 @@
-use std::{fs::File, io::Write};
-use std::io::Result;
 use ndarray::prelude::*;
+use std::io::Result;
+use std::{fs::File, io::Write};
 
 use crate::color::Color;
 
 #[derive(Clone)]
 pub struct Image {
-    pub img: Array2<Color>
-    //pub img: Vec<Vec<Color>>
+    pub img: Array2<Color>, //pub img: Vec<Vec<Color>>
 }
 
 pub fn merge_samples(images: Vec<Image>) -> Image {
@@ -18,10 +17,10 @@ pub fn merge_samples(images: Vec<Image>) -> Image {
 
     let mut new = Image::new(w, h);
 
-    new.img = images.iter()
+    new.img = images
+        .iter()
         .map(|img| &img.img)
-        .fold(Array::from_elem((w, h), Color::black()),
-            |acc, i| acc + i);
+        .fold(Array::from_elem((w, h), Color::black()), |acc, i| acc + i);
 
     new.img.iter_mut().for_each(|c| c.mut_const_mul(ratio));
 
@@ -31,7 +30,7 @@ pub fn merge_samples(images: Vec<Image>) -> Image {
 impl Image {
     pub fn new(w: usize, h: usize) -> Self {
         Image {
-            img: Array::from_elem((w, h), Color::black())
+            img: Array::from_elem((w, h), Color::black()),
         }
     }
 

@@ -1,9 +1,9 @@
-use std::ops::{Add, Mul};
 use std::iter::Sum;
+use std::ops::{Add, Mul};
 
 use rand::random;
 
-use crate::geometry::{V3, v3, rand_in};
+use crate::geometry::{rand_in, v3, V3};
 
 #[derive(Clone, Copy, Debug)]
 pub struct Color(pub V3);
@@ -19,7 +19,8 @@ impl Color {
         let g = self.0.y * ratio;
         let b = self.0.z * ratio;
 
-        format!("{} {} {}",
+        format!(
+            "{} {} {}",
             (256.0 * r.clamp(0.0, 0.999)) as u32,
             (256.0 * g.clamp(0.0, 0.999)) as u32,
             (256.0 * b.clamp(0.0, 0.999)) as u32,
@@ -27,13 +28,13 @@ impl Color {
     }
 
     pub fn ppm(&self) -> String {
-
         // sqrt for gamma correction
         let r = self.0.x.sqrt();
         let g = self.0.y.sqrt();
         let b = self.0.z.sqrt();
 
-        format!("{} {} {}",
+        format!(
+            "{} {} {}",
             (256.0 * r.clamp(0.0, 0.999)) as u32,
             (256.0 * g.clamp(0.0, 0.999)) as u32,
             (256.0 * b.clamp(0.0, 0.999)) as u32,
@@ -65,7 +66,11 @@ impl Mul for Color {
     type Output = Color;
 
     fn mul(self, rhs: Self) -> Self::Output {
-        Color(v3(self.0.x * rhs.0.x, self.0.y * rhs.0.y, self.0.z * rhs.0.z))
+        Color(v3(
+            self.0.x * rhs.0.x,
+            self.0.y * rhs.0.y,
+            self.0.z * rhs.0.z,
+        ))
     }
 }
 
