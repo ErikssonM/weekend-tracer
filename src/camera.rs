@@ -1,4 +1,4 @@
-use crate::geometry::{deg_to_rad, rand_in_unit_disk, unit, v3, Point, Ray, V3};
+use crate::geometry::{deg_to_rad, rand_in_unit_disk, unit, Point, Ray, V3};
 
 pub struct Camera {
     origin: Point,
@@ -7,7 +7,6 @@ pub struct Camera {
     vertical: V3,
     u: V3,
     v: V3,
-    w: V3,
     lens_radius: f64,
 }
 
@@ -45,7 +44,6 @@ impl Camera {
             vertical,
             u,
             v,
-            w,
             lens_radius,
         }
     }
@@ -55,7 +53,7 @@ impl Camera {
         let offset = self.u * rd.x + self.v * rd.y;
 
         Ray {
-            orig: self.origin.clone() + offset,
+            orig: self.origin + offset,
             dir: self.lower_left + s * self.horizontal + t * self.vertical - self.origin - offset, //dir: self.lower_left + s*self.horizontal + t*self.vertical - self.origin
         }
     }

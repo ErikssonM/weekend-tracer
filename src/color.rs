@@ -13,20 +13,6 @@ impl Color {
         Color(v3(0.0, 0.0, 0.0))
     }
 
-    pub fn to_ppm_row(&self, samples: u32) -> String {
-        let ratio = 1.0 / (samples as f64);
-        let r = self.0.x * ratio;
-        let g = self.0.y * ratio;
-        let b = self.0.z * ratio;
-
-        format!(
-            "{} {} {}",
-            (256.0 * r.clamp(0.0, 0.999)) as u32,
-            (256.0 * g.clamp(0.0, 0.999)) as u32,
-            (256.0 * b.clamp(0.0, 0.999)) as u32,
-        )
-    }
-
     pub fn ppm(&self) -> String {
         // sqrt for gamma correction
         let r = self.0.x.sqrt();

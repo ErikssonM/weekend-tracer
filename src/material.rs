@@ -27,7 +27,7 @@ pub struct Dielectric {
 }
 
 impl Material for Lambertian {
-    fn scatter(&self, ray: &Ray, rec: &HitRecord) -> Option<Scatter> {
+    fn scatter(&self, _ray: &Ray, rec: &HitRecord) -> Option<Scatter> {
         let mut scatter_dir = rec.normal + random_unit_vec();
 
         if near_zero(&scatter_dir) {
@@ -38,7 +38,7 @@ impl Material for Lambertian {
             orig: rec.point,
             dir: scatter_dir,
         };
-        let color = self.albedo.clone();
+        let color = self.albedo;
         Some((color, scattered))
     }
 }
@@ -50,7 +50,7 @@ impl Material for Metal {
             orig: rec.point,
             dir: reflected + self.fuzz * random_in_unit_sphere(),
         };
-        let color = self.albedo.clone();
+        let color = self.albedo;
 
         if scattered.direction().dot(&rec.normal) > 0. {
             Some((color, scattered))

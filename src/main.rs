@@ -1,6 +1,5 @@
 use material::Material;
 use rand::prelude::*;
-use std::thread;
 use std::time::Instant;
 use std::{error::Error, fs::File, rc::Rc};
 
@@ -13,23 +12,21 @@ mod material;
 
 use camera::Camera;
 use color::Color;
-use geometry::{rand_in, random_unit_vec, unit, v3, Ray, Sphere};
+use geometry::{rand_in, unit, v3, Ray, Sphere};
 use hittable::{HitRecord, Hittable, HittableList};
 use image::{merge_samples, Image};
 
 use crate::{
-    geometry::{refract, V3Length},
+    geometry::V3Length,
     material::{Dielectric, Lambertian, Metal},
 };
 
 const INF: f64 = f64::INFINITY;
-const PI: f64 = 3.1415926535897932385;
 
 fn ray_color(ray: &Ray, world: &impl Hittable, depth: i32) -> Color {
     let mut rec = HitRecord::new();
 
     if depth <= 0 {
-        //return Color( v3(1.0, 1.0, 1.0) );
         return Color::black();
     }
 
@@ -63,7 +60,7 @@ fn render(
         for i in 0..width {
             let mut color = Color::black();
 
-            for s in 0..samples {
+            for _ in 0..samples {
                 let u = (i as f64 + random::<f64>()) / (width - 1) as f64;
                 let v = (j as f64 + random::<f64>()) / (height - 1) as f64;
                 let ray = camera.get_ray(u, v);
@@ -87,7 +84,7 @@ fn make_world() -> HittableList {
     let ground = Sphere {
         center: v3(0., -1000., 0.),
         radius: 1000.,
-        material: ground_mat.clone(),
+        material: ground_mat,
     };
     world.add(Rc::new(ground));
 

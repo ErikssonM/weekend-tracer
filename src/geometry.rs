@@ -2,12 +2,11 @@ use std::rc::Rc;
 
 use nalgebra::base::Vector3;
 use rand::random;
+use std::f64::consts::PI;
 
 use crate::{
-    color::Color,
     hittable::{HitRecord, Hittable},
-    material::{Material, Metal},
-    PI,
+    material::Material,
 };
 
 pub type V3 = Vector3<f64>;
@@ -111,22 +110,22 @@ impl Ray {
     }
 
     pub fn direction(&self) -> V3 {
-        self.dir.clone()
+        self.dir
     }
 
     pub fn origin(&self) -> Point {
-        self.orig.clone()
+        self.orig
     }
 }
 
 impl Hittable for Sphere {
     fn hit(&self, ray: &Ray, t_min: f64, t_max: f64, record: &mut HitRecord) -> bool {
-        let oc = ray.origin() - self.center.clone();
+        let oc = ray.origin() - self.center;
         let a = ray.direction().length_squared();
         let half_b = oc.dot(&ray.direction());
         let c = oc.length_squared() - self.radius * self.radius;
 
-        let discriminant = half_b * half_b - a * c;
+        let discriminant = half_b.powf(2.) - a * c;
 
         if discriminant < 0.0 {
             return false;
@@ -146,13 +145,14 @@ impl Hittable for Sphere {
         record.set_face_normal(&ray, &outward_normal);
         record.material = Some(self.material.clone());
 
-        return true;
+        true
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::{Color, Metal};
 
     #[test]
     fn test_hit_sphere() {
