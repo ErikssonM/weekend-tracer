@@ -10,3 +10,6 @@ edition = "2018"
 nalgebra = "0.26.2"
 rand = "0.8.3"
 ndarray = "0.15.1"
+
+[profile.release]
+debug = 1

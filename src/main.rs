@@ -17,7 +17,6 @@ use hittable::{Hittable, HittableList};
 use image::{merge_samples, Image};
 
 use crate::{
-    geometry::V3Length,
     material::{Dielectric, Lambertian, Metal},
 };
 
@@ -28,7 +27,6 @@ fn ray_color(ray: &Ray, world: &impl Hittable, depth: i32) -> Color {
         return Color::black();
     }
 
-    //match world.hit(ray, 0.001, INF) {
     if let Some(rec) = world.hit(ray, 0.001, INF) {
         let col = match rec.material.scatter(&ray, &rec) {
             None => Color::black(),
@@ -93,7 +91,7 @@ fn make_world() -> HittableList {
                 b as f64 + 0.9 * random::<f64>(),
             );
 
-            if (cent - v3(4., 0.2, 0.)).length() > 0.9 {
+            if (cent - v3(4., 0.2, 0.)).norm() > 0.9 {
                 let mat: Rc<dyn Material> = if choose_mat < 0.8 {
                     Rc::new(Lambertian {
                         albedo: Color::random() * Color::random(),
@@ -162,7 +160,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let lookat = v3(0., 0., 0.);
     let vup = v3(0., 1., 0.);
 
-    let focus_dist = (lookfrom - lookat).length();
+    let focus_dist = (lookfrom - lookat).norm();
     //let focus_dist = 10.0;
 
     // Camera

@@ -13,14 +13,6 @@ pub type V3 = Vector3<f64>;
 
 pub type Point = V3;
 
-pub trait V3Length {
-    fn length_squared(&self) -> f64;
-
-    fn length(&self) -> f64 {
-        self.length_squared().sqrt()
-    }
-}
-
 pub struct Ray {
     pub orig: Point,
     pub dir: V3,
@@ -59,7 +51,7 @@ pub fn rand_in(min: f64, max: f64) -> f64 {
 pub fn rand_in_unit_disk() -> V3 {
     loop {
         let v = v3(rand_in(-1., 1.), rand_in(-1., 1.), 0.);
-        if v.length() <= 1. {
+        if v.norm() <= 1. {
             return v;
         }
     }
@@ -83,17 +75,11 @@ pub fn random_in_unit_sphere() -> V3 {
 }
 
 pub fn random_unit_vec() -> V3 {
-    unit(&random_in_unit_sphere())
+    rand_vec().normalize()
 }
 
 pub fn reflect(v: &V3, n: &V3) -> V3 {
     v - 2.0 * v.dot(n) * n
-}
-
-impl V3Length for V3 {
-    fn length_squared(&self) -> f64 {
-        self.dot(self)
-    }
 }
 
 pub fn refract(uv: &V3, n: &V3, etai_over_etat: f64) -> V3 {
@@ -121,9 +107,9 @@ impl Ray {
 impl Hittable for Sphere {
     fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         let oc = ray.origin() - self.center;
-        let a = ray.direction().length_squared();
+        let a = ray.direction().norm_squared();
         let half_b = oc.dot(&ray.direction());
-        let c = oc.length_squared() - self.radius * self.radius;
+        let c = oc.norm_squared() - self.radius * self.radius;
 
         let discriminant = half_b.powf(2.) - a * c;
 
@@ -182,7 +168,7 @@ mod tests {
         // A Hit should be detected
         match res {
             // recorded hit site should be -1, 0, 0
-            Some(rec) => assert_eq!((rec.point - v3(-1., 0., 0.)).length() < 0.01, true),
+            Some(rec) => assert_eq!((rec.point - v3(-1., 0., 0.)).norm() < 0.01, true),
             None => panic!("Expected a hit to be recorded"),
         }
     }
@@ -239,7 +225,7 @@ mod tests {
         // Hit should be detected
         match res {
             // Hit should occur at 1, 0, 0
-            Some(rec) => assert_eq!((rec.point - v3(1., 0., 0.)).length() < 0.01, true),
+            Some(rec) => assert_eq!((rec.point - v3(1., 0., 0.)).norm() < 0.01, true),
             None => panic!("Expected a hit to be recorded"),
         };
     }
@@ -268,7 +254,7 @@ mod tests {
         // Hit should be detected
         match res {
             // Hit should occur at 0, 1, 0
-            Some(rec) => assert_eq!((rec.point - v3(0., 1., 0.)).length() < 0.01, true),
+            Some(rec) => assert_eq!((rec.point - v3(0., 1., 0.)).norm() < 0.01, true),
             None => panic!("Expected a hit to be recorded"),
         };
     }
