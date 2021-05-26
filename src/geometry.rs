@@ -1,7 +1,10 @@
-use std::rc::Rc;
+use std::{sync::Arc};
 
 use nalgebra::base::Vector3;
-use rand::random;
+use rand::{
+    distributions::uniform::{UniformFloat, UniformSampler},
+    random, thread_rng,
+};
 use std::f64::consts::PI;
 
 use crate::{
@@ -21,7 +24,7 @@ pub struct Ray {
 pub struct Sphere {
     pub center: Point,
     pub radius: f64,
-    pub material: Rc<dyn Material>,
+    pub material: Arc<dyn Material + Send + Sync>,
 }
 
 pub fn v3(x: f64, y: f64, z: f64) -> V3 {
@@ -33,32 +36,30 @@ pub fn rand_vec() -> V3 {
 }
 
 pub fn unit(v: &V3) -> V3 {
-    v / v.norm()
+    v.normalize()
 }
 
 pub fn near_zero(v: &V3) -> bool {
     let eps = 1e-8;
-    (v.x.abs() < eps) && (v.y.abs() < eps) && (v.z.abs() < eps)
+    v.norm() < eps
 }
 
 pub fn rand_in(min: f64, max: f64) -> f64 {
-    if max < min {
-        panic!()
-    }
     random::<f64>() * (max - min) + min
 }
 
 pub fn rand_in_unit_disk() -> V3 {
-    loop {
-        let v = v3(rand_in(-1., 1.), rand_in(-1., 1.), 0.);
-        if v.norm() <= 1. {
-            return v;
-        }
-    }
+    v3(rand_in(-1., 1.), rand_in(-1., 1.), 0.).normalize() * random::<f64>()
 }
 
 pub fn rand_vec_bounded(min: f64, max: f64) -> V3 {
-    v3(rand_in(min, max), rand_in(min, max), rand_in(min, max))
+    let mut rng = thread_rng();
+    let range: UniformFloat<f64> = UniformSampler::new(min, max);
+    v3(
+        range.sample(&mut rng),
+        range.sample(&mut rng),
+        range.sample(&mut rng),
+    )
 }
 
 pub fn deg_to_rad(deg: f64) -> f64 {
@@ -66,12 +67,7 @@ pub fn deg_to_rad(deg: f64) -> f64 {
 }
 
 pub fn random_in_unit_sphere() -> V3 {
-    loop {
-        let p = rand_vec_bounded(-1.0, 1.0);
-        if p.norm() < 1.0 {
-            return p;
-        }
-    }
+    rand_vec_bounded(-1., 1.).normalize() * random::<f64>()
 }
 
 pub fn random_unit_vec() -> V3 {
@@ -154,7 +150,7 @@ mod tests {
         let sphere = Sphere {
             center: v3(0., 0., 0.),
             radius: 1.,
-            material: Rc::new(mat),
+            material: Arc::new(mat),
         };
 
         let ray = Ray {
@@ -183,7 +179,7 @@ mod tests {
         let sphere = Sphere {
             center: v3(0., 0., 0.),
             radius: 1.,
-            material: Rc::new(mat),
+            material: Arc::new(mat),
         };
 
         let ray = Ray {
@@ -211,7 +207,7 @@ mod tests {
         let sphere = Sphere {
             center: v3(0., 0., 0.),
             radius: 1.,
-            material: Rc::new(mat),
+            material: Arc::new(mat),
         };
 
         let ray = Ray {
@@ -240,7 +236,7 @@ mod tests {
         let sphere = Sphere {
             center: v3(0., 0., 0.),
             radius: 1.,
-            material: Rc::new(mat),
+            material: Arc::new(mat),
         };
 
         let ray = Ray {

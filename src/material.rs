@@ -9,7 +9,7 @@ use crate::{
 
 pub type Scatter = (Color, Ray);
 
-pub trait Material {
+pub trait Material: Send + Sync {
     fn scatter(&self, ray: &Ray, rec: &HitRecord) -> Option<Scatter>;
 }
 

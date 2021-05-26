@@ -1,7 +1,9 @@
 use material::Material;
 use rand::prelude::*;
+use std::sync::Arc;
+use std::thread;
 use std::time::Instant;
-use std::{error::Error, fs::File, rc::Rc};
+use std::{error::Error, fs::File};
 
 mod camera;
 mod color;
@@ -16,9 +18,7 @@ use geometry::{rand_in, unit, v3, Ray, Sphere};
 use hittable::{Hittable, HittableList};
 use image::{merge_samples, Image};
 
-use crate::{
-    material::{Dielectric, Lambertian, Metal},
-};
+use crate::material::{Dielectric, Lambertian, Metal};
 
 const INF: f64 = f64::INFINITY;
 
@@ -72,7 +72,7 @@ fn render(
 fn make_world() -> HittableList {
     let mut world = HittableList::new();
 
-    let ground_mat = Rc::new(Lambertian {
+    let ground_mat = Arc::new(Lambertian {
         albedo: Color(v3(0.5, 0.5, 0.5)),
     });
     let ground = Sphere {
@@ -80,10 +80,10 @@ fn make_world() -> HittableList {
         radius: 1000.,
         material: ground_mat,
     };
-    world.add(Rc::new(ground));
+    world.add(Box::new(ground));
 
-    for a in -3..3 {
-        for b in -3..3 {
+    for a in -11..11 {
+        for b in -11..11 {
             let choose_mat: f64 = random();
             let cent = v3(
                 a as f64 + 0.9 * random::<f64>(),
@@ -92,20 +92,20 @@ fn make_world() -> HittableList {
             );
 
             if (cent - v3(4., 0.2, 0.)).norm() > 0.9 {
-                let mat: Rc<dyn Material> = if choose_mat < 0.8 {
-                    Rc::new(Lambertian {
+                let mat: Arc<dyn Material + Send + Sync> = if choose_mat < 0.8 {
+                    Arc::new(Lambertian {
                         albedo: Color::random() * Color::random(),
                     })
                 } else if choose_mat < 0.95 {
-                    Rc::new(Metal {
+                    Arc::new(Metal {
                         albedo: Color::random_in(0.5, 1.),
                         fuzz: rand_in(0., 0.3),
                     })
                 } else {
-                    Rc::new(Dielectric { ir: 1.5 })
+                    Arc::new(Dielectric { ir: 1.5 })
                 };
 
-                world.add(Rc::new(Sphere {
+                world.add(Box::new(Sphere {
                     center: cent,
                     radius: 0.2,
                     material: mat,
@@ -114,28 +114,28 @@ fn make_world() -> HittableList {
         }
     }
 
-    let mat1 = Rc::new(Dielectric { ir: 1.5 });
-    world.add(Rc::new(Sphere {
+    let mat1 = Arc::new(Dielectric { ir: 1.5 });
+    world.add(Box::new(Sphere {
         center: v3(0., 1., 0.),
         radius: 1.,
         material: mat1,
     }));
 
-    let mat2 = Rc::new(Lambertian {
+    let mat2 = Arc::new(Lambertian {
         albedo: Color(v3(0.4, 0.2, 0.1)),
     });
-    world.add(Rc::new(Sphere {
+    world.add(Box::new(Sphere {
         center: v3(-4., 1., 0.),
         radius: 1.,
         material: mat2,
     }));
 
-    let mat3 = Rc::new(Metal {
+    let mat3 = Arc::new(Metal {
         albedo: Color(v3(0.7, 0.6, 0.5)),
         fuzz: 0.0,
     });
-    world.add(Rc::new(Sphere {
-        center: v3(0., 1., 0.),
+    world.add(Box::new(Sphere {
+        center: v3(4., 1., 0.),
         radius: 1.,
         material: mat3,
     }));
@@ -147,24 +147,23 @@ fn main() -> Result<(), Box<dyn Error>> {
     let start = Instant::now();
 
     let ratio: f64 = 16.0 / 9.0;
-    let width: usize = 400;
+    let width: usize = 800;
     let height: usize = (width as f64 / ratio) as usize;
 
-    let sub_samples = 8;
-    let super_samples = 8;
+    let sub_samples = 4;
+    let super_samples = 16;
     let max_depth = 50;
 
-    let world = Rc::new(make_world());
+    let world = Arc::new(make_world());
 
     let lookfrom = v3(13., 2., 3.);
     let lookat = v3(0., 0., 0.);
     let vup = v3(0., 1., 0.);
 
     let focus_dist = (lookfrom - lookat).norm();
-    //let focus_dist = 10.0;
 
     // Camera
-    let camera = Rc::new(Camera::new(
+    let camera = Arc::new(Camera::new(
         lookfrom,
         lookat,
         vup,
@@ -174,33 +173,35 @@ fn main() -> Result<(), Box<dyn Error>> {
         focus_dist,
     ));
 
-    //let mut handles = Vec::with_capacity(super_samples);
+    let mut handles = Vec::with_capacity(super_samples);
     let mut images = Vec::with_capacity(super_samples);
 
-    for sup in 0..super_samples {
-        println!("Running {} of {} samples.", sup, super_samples);
-        images.push(render(
-            &camera,
-            &world,
-            width,
-            height,
-            sub_samples,
-            max_depth,
-        ))
+    //for sup in 0..super_samples {
+    //    println!("Running {} of {} samples.", sup, super_samples);
+    //    images.push(render(
+    //        &camera,
+    //        &world,
+    //        width,
+    //        height,
+    //        sub_samples,
+    //        max_depth,
+    //    ))
+    //}
+
+    println!("Starting threads");
+    for _ in 0..super_samples {
+        let cam = camera.clone();
+        let wo = world.clone();
+        handles.push(thread::spawn(move || {
+            render(&cam, &wo, width, height, sub_samples, max_depth)
+        }));
     }
 
-    // println!("Starting threads");
-    // for _ in 0..super_samples {
-    //     handles.push(thread::spawn(move ||
-    //         render(&camera.clone(), &world.clone(), width, height, sub_samples, max_depth)
-    //     ));
-    // }
+    for handle in handles {
+        images.push(handle.join().unwrap());
+    }
 
-    // for handle in handles {
-    //     images.push(handle.join().unwrap());
-    // }
-
-    // println!("Joined all threads");
+    println!("Joined all threads");
 
     let final_image = merge_samples(images);
 
