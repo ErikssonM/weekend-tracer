@@ -72,7 +72,7 @@ fn render(
 fn make_world() -> HittableList {
     let mut world = HittableList::new();
 
-    let ground_mat = Arc::new(Lambertian {
+    let ground_mat = Box::new(Lambertian {
         albedo: Color(v3(0.5, 0.5, 0.5)),
     });
     let ground = Sphere {
@@ -92,17 +92,17 @@ fn make_world() -> HittableList {
             );
 
             if (cent - v3(4., 0.2, 0.)).norm() > 0.9 {
-                let mat: Arc<dyn Material + Send + Sync> = if choose_mat < 0.8 {
-                    Arc::new(Lambertian {
+                let mat: Box<dyn Material> = if choose_mat < 0.8 {
+                    Box::new(Lambertian {
                         albedo: Color::random() * Color::random(),
                     })
                 } else if choose_mat < 0.95 {
-                    Arc::new(Metal {
+                    Box::new(Metal {
                         albedo: Color::random_in(0.5, 1.),
                         fuzz: rand_in(0., 0.3),
                     })
                 } else {
-                    Arc::new(Dielectric { ir: 1.5 })
+                    Box::new(Dielectric { ir: 1.5 })
                 };
 
                 world.add(Box::new(Sphere {
@@ -114,14 +114,14 @@ fn make_world() -> HittableList {
         }
     }
 
-    let mat1 = Arc::new(Dielectric { ir: 1.5 });
+    let mat1 = Box::new(Dielectric { ir: 1.5 });
     world.add(Box::new(Sphere {
         center: v3(0., 1., 0.),
         radius: 1.,
         material: mat1,
     }));
 
-    let mat2 = Arc::new(Lambertian {
+    let mat2 = Box::new(Lambertian {
         albedo: Color(v3(0.4, 0.2, 0.1)),
     });
     world.add(Box::new(Sphere {
@@ -130,7 +130,7 @@ fn make_world() -> HittableList {
         material: mat2,
     }));
 
-    let mat3 = Arc::new(Metal {
+    let mat3 = Box::new(Metal {
         albedo: Color(v3(0.7, 0.6, 0.5)),
         fuzz: 0.0,
     });
@@ -147,11 +147,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     let start = Instant::now();
 
     let ratio: f64 = 16.0 / 9.0;
-    let width: usize = 800;
+    let width: usize = 400;
     let height: usize = (width as f64 / ratio) as usize;
 
-    let sub_samples = 4;
-    let super_samples = 16;
+    let sub_samples = 16;
+    let super_samples = 1;
     let max_depth = 50;
 
     let world = Arc::new(make_world());

@@ -1,22 +1,20 @@
-use std::{sync::Arc};
-
 use crate::{
     geometry::{Point, Ray, V3},
     material::Material,
 };
 
 pub struct HittableList {
-    pub list: Vec<Box<dyn Hittable + Send + Sync>>,
+    pub list: Vec<Box<dyn Hittable>>,
 }
 
 pub trait Hittable: Send + Sync {
     fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord>;
 }
 #[derive(Clone)]
-pub struct HitRecord {
+pub struct HitRecord<'mat> {
     pub point: Point,
     pub normal: V3,
-    pub material: Arc<dyn Material + Send + Sync>,
+    pub material: &'mat dyn Material,
     pub t: f64,
     pub front_face: bool,
 }
@@ -46,12 +44,12 @@ impl Hittable for HittableList {
     }
 }
 
-impl HitRecord {
+impl<'mat> HitRecord<'mat> {
     pub fn new(
         ray: &Ray,
         outward_normal: &V3,
         point: Point,
-        material: Arc<dyn Material + Send + Sync>,
+        material: &'mat dyn Material,
         t: f64,
     ) -> Self {
         let (normal, front_face) = Self::get_face_normal_from_ray(ray, outward_normal);

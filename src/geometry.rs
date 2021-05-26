@@ -1,5 +1,3 @@
-use std::{sync::Arc};
-
 use nalgebra::base::Vector3;
 use rand::{
     distributions::uniform::{UniformFloat, UniformSampler},
@@ -24,7 +22,7 @@ pub struct Ray {
 pub struct Sphere {
     pub center: Point,
     pub radius: f64,
-    pub material: Arc<dyn Material + Send + Sync>,
+    pub material: Box<dyn Material>,
 }
 
 pub fn v3(x: f64, y: f64, z: f64) -> V3 {
@@ -129,7 +127,7 @@ impl Hittable for Sphere {
             &ray,
             &outward_normal,
             point,
-            self.material.clone(),
+            self.material.as_ref(),
             t,
         ))
     }
